@@ -8,6 +8,9 @@ import time
 from multiprocessing.connection import Client, Listener
 from threading import Thread
 
+# Import sdnator_due library
+from sdnator_due import * 
+
 # from sonata.core.training.hypothesis.hypothesis import Hypothesis
 from sonata.streaming_driver.streaming_driver import StreamingDriver
 
@@ -38,6 +41,14 @@ class Runtime(object):
     op_handler_listener = None
 
     def __init__(self, conf, queries, app_path):
+        # Set up sdnator_due library 
+        self._capabilities = [{'dataKey': 'sonata.runtime.final_output', 'frequency': {'min': 0, 'max': 100}}]
+        # set up drivers
+        due.set_pubsub({'driver': 'redis', 'host': 'localhost', 'port': 6379})
+        due.set_db({'driver': 'mongo', 'host': 'localhost', 'port': 27017})
+        # init due
+        due.init("sonata_producer", PRODUCER, capabilities=self._capabilities)
+
         self.conf = conf
         self.refinement_keys = conf["refinement_keys"]
         self.GRAN_MAX = conf["GRAN_MAX"]
@@ -313,7 +324,11 @@ class Runtime(object):
                     else:
                         if queries_received[src_qid]:
                             with open(self.log_path + "/final_output", 'w') as f:
-                                f.write(str("\n".join(queries_received[src_qid])))
+                                output = str("\n".join(queries_received[src_qid]))
+                                f.write(output)
+
+                                # Intercept final output and send output to due
+                                due.write('sonata.runtime.final_output', str(output))
 
                         if len(queries_received[src_qid]) > 0:
                             print "Final Output for " + str(src_qid) + ": " + str(queries_received[src_qid])
