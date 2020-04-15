@@ -36,5 +36,6 @@ if __name__ == '__main__':
     print("*********************************************************************\n\n")
     runtime = Runtime(config,
                       queries,
-                      os.path.dirname(os.path.realpath(__file__))
+                      os.path.dirname(os.path.realpath(__file__)),
+                      name = "superspreader.attacker_ip"
                       )

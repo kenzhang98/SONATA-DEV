@@ -8,9 +8,6 @@ import time
 from multiprocessing.connection import Client, Listener
 from threading import Thread
 
-# Import sdnator_due library
-from sdnator_due import * 
-
 # from sonata.core.training.hypothesis.hypothesis import Hypothesis
 from sonata.streaming_driver.streaming_driver import StreamingDriver
 
@@ -28,6 +25,9 @@ from sonata.streaming_driver.query_object import PacketStream as SP_QO
 from sonata.core.utils import copy_sonata_operators_to_sp_query, flatten_streaming_field_names
 from sonata.core.utils import generated_source_path
 
+# Import sdnator_due library
+from sdnator_due import * 
+
 
 class Runtime(object):
     dp_queries = {}
@@ -40,14 +40,7 @@ class Runtime(object):
     op_handler_socket = None
     op_handler_listener = None
 
-    def __init__(self, conf, queries, app_path):
-        # Set up sdnator_due library 
-        self._capabilities = [{'dataKey': 'sonata.runtime.final_output', 'frequency': {'min': 0, 'max': 100}}]
-        # set up drivers
-        due.set_pubsub({'driver': 'redis', 'host': 'localhost', 'port': 6379})
-        due.set_db({'driver': 'mongo', 'host': 'localhost', 'port': 27017})
-        # init due
-        due.init("sonata_producer", PRODUCER, capabilities=self._capabilities)
+    def __init__(self, conf, queries, app_path, name):
 
         self.conf = conf
         self.refinement_keys = conf["refinement_keys"]
@@ -58,6 +51,15 @@ class Runtime(object):
         self.target_id = 1
         self.app_path = generated_source_path(app_path, "/generated_src/")
         self.log_path = generated_source_path(app_path, "/logs/")
+
+        # Set up sdnator_due library 
+        self.sonata_data_key = 'sonata.' + name
+        self._capabilities = [{'dataKey': self.sonata_data_key, 'frequency': {'min': 0, 'max': 100}}]
+        # set up drivers
+        due.set_pubsub({'driver': 'redis', 'host': 'localhost', 'port': 6379})
+        due.set_db({'driver': 'mongo', 'host': 'localhost', 'port': 27017})
+        # init due
+        due.init("sonata_producer", PRODUCER, capabilities=self._capabilities)
 
         self.sonata_fields = self.get_sonata_layers()
 
@@ -328,7 +330,7 @@ class Runtime(object):
                                 f.write(output)
 
                                 # Intercept final output and send output to due
-                                due.write('sonata.runtime.final_output', str(output))
+                                due.write(self.sonata_data_key, str(output))
 
                         if len(queries_received[src_qid]) > 0:
                             print "Final Output for " + str(src_qid) + ": " + str(queries_received[src_qid])

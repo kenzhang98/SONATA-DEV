@@ -48,4 +48,8 @@ if __name__ == '__main__':
     print("*********************************************************************")
     print("*                   Receiving User Queries                          *")
     print("*********************************************************************\n\n")
-    runtime = Runtime(config, queries)
+    runtime = Runtime(config,
+                      queries,
+                      os.path.dirname(os.path.realpath(__file__)),
+                      name = "dns_tunneling.attacker_ip" 
+                      )
